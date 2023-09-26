@@ -82,12 +82,16 @@ local function test_paths(paths, opts)
   local jobs = vim.tbl_map(function(p)
     local args = {
       "--headless",
-      "-c",
-      "set rtp+=.," .. vim.fn.escape(plenary_dir, " ") .. " | runtime plugin/plenary.vim",
+      "--cmd",  -- add plenary rtp BEFORE running init.lua
+      "set rtp+=.," .. vim.fn.escape(plenary_dir, " "),
+      "-c", -- run after minimal_init.lua
+      "runtime plugin/plenary.vim",
     }
 
     if minimal then
       table.insert(args, "--noplugin")
+      -- See #459 and #497, the current behavior is that
+      -- $XDG_CONFIG_HOME/nvim/init.lua is used by default (minimal_init is falsy)
       if opts.minimal_init then
         table.insert(args, "-u")
         table.insert(args, opts.minimal_init)
