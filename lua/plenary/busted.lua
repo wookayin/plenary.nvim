@@ -234,7 +234,7 @@ mod.run = function(file)
     end
   end
 
-  coroutine.wrap(function()
+  function fn()
     loaded()
 
     -- If nothing runs (empty file without top level describe)
@@ -249,12 +249,13 @@ mod.run = function(file)
     mod.format_results(results)
 
     if #results.errs ~= 0 then
-      print("We had an unexpected error: ", vim.inspect(results.errs), vim.inspect(results))
+      print(color_string("red", "We had an unexpected error: "),
+        vim.inspect(results.errs), vim.inspect(results))
       if is_headless then
         return vim.cmd "2cq"
       end
     elseif #results.fail > 0 then
-      print "Tests Failed. Exit: 1"
+      print(color_string("red", "Tests Failed. Exit: 1"))
 
       if is_headless then
         return vim.cmd "1cq"
@@ -264,7 +265,21 @@ mod.run = function(file)
         return vim.cmd "0cq"
       end
     end
+  end
+
+  -- coroutine.wrap suppresses the stacktrace for error happened within loaded(),
+  -- so need to catch with xpcall and propagate the error
+  local stacktrace = nil
+  coroutine.wrap(function()
+    xpcall(fn, function(err)
+      stacktrace = debug.traceback(err, 2)
+    end)
   end)()
+
+  if stacktrace then
+    error(stacktrace)
+  end
+
 end
 
 return mod
